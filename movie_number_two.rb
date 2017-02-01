@@ -65,6 +65,7 @@ class Ratings #class that holds data on all of the entries of a particular data 
     hasher = Hash.new(Rater)
     i=0
     @peeps.each do |persone|
+      #puts"\n #{persone.getName}"
       hasher[i] = persone
       i=i+1
     end
@@ -77,14 +78,13 @@ class Validator
     movies = Array.new
     people = Array.new
     tHash = tester.hashFunction
-    bHash = baser.hashFunction
     tKeys = tHash.keys
-    bKeys = bHash.keys
     exact = 0.0
     offOne = 0.0
     mean = 0.0
     standdev = 0.0
     total =0.0
+    #trainDay(baser) #the method call to intialize the prediction is commented out because it takes forever, however in analyzation it would work, just at a snails pace
     tKeys.each do |indiKey|
       per = tHash[indiKey]
       rat = tester.predict(per.getName, per.getMovie)
@@ -109,36 +109,66 @@ class Validator
       standdev = standdev + ((actual-mean)*(actual-mean))
     end
     standdev = Math.sqrt(standdev/total)
-  #  mean = mean/total
-    puts"\nThe mean difference between the prediction and the actual rating - #{mean}"
-    puts"\nThe number of exact guesses - #{exact}"
-    puts"\nThe number of guesses that were one off - #{offOne}"
-    puts"\n The total number of predictions - #{total}"
-    puts"\n The standard deviation - #{standdev}"
-    #bUsers = generation(bKeys, bHash, 1)
-    #bMovies = generation(bKeys, bHash, 2)
-    #predictionArray(bUsers,bMovies)
+    puts"\nThe mean difference between the prediction and the actual rating --> #{mean}"
+    puts"\nThe number of exact guesses --> #{exact}"
+    puts"\nThe number of guesses that were one off --> #{offOne}"
+    puts"\n The total number of predictions --> #{total}"
+    puts"\n The standard deviation --> #{standdev}"
   end
 
-  def predictionArray(users, movies)
-
-  end
-
-  def generation (keyArray, hasher, x)
-    temp = Array.new
-    keyArray.each do |indivKey|
-      pep = hasher[indivKey]
-      if x== 1
-        pepName = pep.getName
-      else
-        pepName = pep.getMovie
+  def trainDay(baser)
+    mainer = Hash.new(Hash)
+    bHash = baser.hashFunction
+    bKeys = bHash.keys
+    bKeys.each do |baseKey|
+      outterPer = bHash[baseKey]
+      puts"\n #{outterPer.getName}"
+      sPeople = most_similar(outterPer)
+      simil = Hash.new(0)
+      sPeople.each do |theP|
+        if simil.include?(theP.getMovie.to_i)
+          va = simil[theP.getMovie.to_i]
+          simil[theP.getMovie.to_i] = ((simil[theP.getMovie.to_i] + theP.getRate.to_i)/2)
+        else
+          simil[theP.getMovie.to_i] = theP.getRate.to_i
+        end
       end
-      if temp.include?(pepName)
-        temp.push(pepName)
-      end
+      mainer[outterPer] = simil
     end
-    return temp
   end
+
+    def most_similar(u) # compiles a list of users that rated the same movie the same thing as user u did
+      sim = Array.new
+      tracker = Array.new
+      trackerPeeps = Array.new
+      simCheck = Array.new
+      finalList = Array.new
+      index=0
+      @peeps.each do |part| # initalizes the entires that are associated with user u
+        if part.getName().to_i == u
+          tracker.push(part.getMovie())
+          trackerPeeps.push(part)
+        end
+      end
+      @peeps.each do |part|
+        if tracker.include?(part.getMovie()) #=> false checks to see if movies in the overall list were also voted on by the user u
+            sim.push(part)
+        end
+      end
+      sim.each do |part|
+        trackerPeeps.each do |partner|
+          if partner.getMovie() == part.getMovie()
+            if partner.getRate() == part.getRate()
+              if finalList.include?(part.getName()) #makes sure each name is only added once
+              else
+                finalList.push(part.getName())
+              end
+            end
+          end
+        end
+      end
+      return finalList
+    end
 end
 
 class Control
@@ -156,5 +186,9 @@ class Control
   end
 end
 
+start = Time.now
 x= Control.new
 x.run()
+finish = Time.now
+diff = finish - start
+puts"\nThe total time taken to run --> #{diff}"
